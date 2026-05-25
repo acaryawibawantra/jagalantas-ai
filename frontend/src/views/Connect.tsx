@@ -1,0 +1,331 @@
+import { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet'
+// @ts-ignore
+import 'leaflet/dist/leaflet.css'
+import { liveIncidents, citizenReports, statsSummary } from '../data/jakartaData'
+import StatCard from '../components/StatCard'
+import { Card, CardContent } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+
+const severityColor: Record<string, string> = { critical: 'var(--color-danger-500)', high: 'var(--color-warning-500)', medium: 'var(--color-warning-500)', low: 'var(--color-success-500)' }
+const severityLabel: Record<string, string> = { critical: 'KRITIS', high: 'TINGGI', medium: 'SEDANG', low: 'RENDAH' }
+const statusColor: Record<string, string> = { verified: 'var(--color-success-500)', processing: 'var(--color-warning-500)', rejected: 'var(--color-danger-500)' }
+const statusLabel: Record<string, string> = { verified: '✓ Terverifikasi', processing: '⟳ Diproses', rejected: '✗ Ditolak' }
+
+export default function ConnectPage() {
+  const [tab, setTab] = useState('incidents')
+  const [incidents] = useState(liveIncidents)
+  const [reports, setReports] = useState(citizenReports)
+  const [form, setForm] = useState({ jenis: '', lokasi: '', deskripsi: '', channel: 'JAKI' })
+  const [submitted, setSubmitted] = useState(false)
+  const [newAlert, setNewAlert] = useState<any>(null)
+
+  // Simulate incoming alert every 15s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const alerts = [
+        'Perlambatan arus terdeteksi di Jl. Pramuka arah Matraman',
+        'Kendaraan parkir liar terdeteksi di depan Stasiun Kota',
+        'Kemacetan terpantau di Jl. MT Haryono arah Cawang',
+      ]
+      setNewAlert(alerts[Math.floor(Math.random() * alerts.length)])
+      setTimeout(() => setNewAlert(null), 4000)
+    }, 15000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const handleSubmit = () => {
+    if (!form.jenis || !form.lokasi) return
+    const newReport = {
+      id: `r0${reports.length + 1}`,
+      lat: -6.2 + (Math.random() - 0.5) * 0.15,
+      lng: 106.83 + (Math.random() - 0.5) * 0.15,
+      status: 'processing', confidence: Math.floor(Math.random() * 40 + 50),
+      location: form.lokasi, type: form.jenis, channel: form.channel,
+      reportedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      reporterCode: `WRG-${Math.floor(Math.random() * 9000 + 1000)}`,
+      description: form.deskripsi || '(tidak ada deskripsi)',
+      action: 'Laporan diterima, validasi CCTV sedang berjalan...',
+    }
+    setReports(prev => [newReport, ...prev])
+    setSubmitted(true)
+    setForm({ jenis: '', lokasi: '', deskripsi: '', channel: 'JAKI' })
+    setTimeout(() => setSubmitted(false), 4000)
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-64px)] w-full pb-10 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300">
+
+      {/* BMKG-style top alert banner */}
+      {newAlert && (
+        <div className="bg-gradient-to-r from-success-600 to-primary-600 px-6 py-2.5 flex items-center gap-3 animate-[slideDown_0.3s_ease]">
+          <span className="text-lg">🔔</span>
+          <span className="font-mono text-xs text-white font-semibold">
+            ALERT OTOMATIS AI: {newAlert}
+          </span>
+          <span className="ml-auto font-mono text-[10px] text-white/70">
+            Dikirim ke warga sekitar via JAKI
+          </span>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-6 pt-8 pb-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-8 bg-success-500 rounded-full" />
+            <div>
+              <h1 className="font-outfit font-bold text-2xl text-slate-900 dark:text-white tracking-tight">
+                JAGALANTAS <span className="text-success-600 dark:text-success-500">CONNECT</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
+                Bidirectional Citizen-AI Alert System · IndoBERT + BMKG-style Alerts
+              </p>
+            </div>
+          </div>
+
+          {/* Bidir badges */}
+          <div className="flex gap-2">
+            <Badge variant="success" className="px-3 py-1.5">⬆ Warga → Sistem</Badge>
+            <Badge variant="primary" className="px-3 py-1.5">⬇ AI → Warga</Badge>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <StatCard icon="🚨" label="Insiden Aktif" value={statsSummary.activeIncidents} sub="Terdeteksi AI dari CCTV" colorClass="text-danger-500" glow />
+          <StatCard icon="📱" label="Laporan Hari Ini" value={statsSummary.citizenReportsToday} sub="Dari warga via JAKI/CRM/WA" colorClass="text-success-500" />
+          <StatCard icon="✅" label="Terverifikasi" value={statsSummary.reportsVerified} sub={`${Math.round(statsSummary.reportsVerified/statsSummary.citizenReportsToday*100)}% confidence rate`} colorClass="text-success-600" />
+          <StatCard icon="🔔" label="Alert Terkirim" value="3.2K" sub="Warga diberitahu hari ini" colorClass="text-primary-500" />
+        </div>
+
+        {/* Main: map + panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+
+          {/* Map Container */}
+          <Card className="flex flex-col min-h-[500px]">
+            {/* Tab toggle */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
+              {[
+                { id: 'incidents', label: '🚨 Insiden Aktif' },
+                { id: 'reports', label: '📍 Laporan Warga' },
+              ].map(t => (
+                <button 
+                  key={t.id} 
+                  onClick={() => setTab(t.id)} 
+                  className={`px-4 py-1.5 rounded-md font-mono text-[11px] font-semibold transition-all ${
+                    tab === t.id 
+                      ? 'bg-success-100 dark:bg-success-500/20 text-success-700 dark:text-success-400' 
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 relative z-0">
+              <MapContainer center={[-6.2088, 106.8456]} zoom={12} className="h-full w-full min-h-[460px] light-map">
+                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                {tab === 'incidents' && incidents.map(inc => (
+                  <CircleMarker
+                    key={inc.id}
+                    center={[inc.lat, inc.lng]}
+                    radius={inc.severity === 'critical' ? 16 : inc.severity === 'high' ? 12 : 9}
+                    pathOptions={{
+                      color: severityColor[inc.severity],
+                      fillColor: severityColor[inc.severity],
+                      fillOpacity: 0.4, weight: 2,
+                    }}
+                  >
+                    <Tooltip direction="top" permanent={inc.severity === 'critical'} className="!bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white !border-slate-200 dark:!border-slate-700 !font-mono !text-[10px] !shadow-md">
+                      <span>{inc.type} · {inc.detectedAt}</span>
+                    </Tooltip>
+                    <Popup>
+                      <div className="min-w-[200px]">
+                        <b style={{ color: severityColor[inc.severity] }} className="text-sm">{inc.type}</b><br />
+                        <span className="text-xs font-semibold">{inc.location}</span><br />
+                        <span className="text-[11px] text-slate-500 block mt-1">{inc.description}</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">Sumber: {inc.source}</span>
+                        {inc.alertSent && <span className="text-[11px] text-success-600 font-semibold block mt-1">✓ Alert terkirim ke {inc.recipients} warga</span>}
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                ))}
+
+                {tab === 'reports' && reports.map(rep => (
+                  <CircleMarker
+                    key={rep.id}
+                    center={[rep.lat, rep.lng]}
+                    radius={9}
+                    pathOptions={{
+                      color: statusColor[rep.status],
+                      fillColor: statusColor[rep.status],
+                      fillOpacity: 0.5, weight: 2,
+                    }}
+                  >
+                    <Tooltip direction="top" className="!bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-white !border-slate-200 dark:!border-slate-700 !font-mono !text-[10px] !shadow-md">
+                      <span>{rep.type} · {statusLabel[rep.status]}</span>
+                    </Tooltip>
+                    <Popup>
+                      <div className="min-w-[200px]">
+                        <b className="text-sm">{rep.type}</b> — <span style={{ color: statusColor[rep.status] }} className="text-xs font-semibold">{statusLabel[rep.status]}</span><br />
+                        <span className="text-xs font-semibold mt-1 block">{rep.location}</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">{rep.description}</span>
+                        <span className="text-[11px] text-slate-500 block mt-1">Confidence: {rep.confidence}%</span>
+                        <span className="text-[11px] text-slate-500 block">Channel: {rep.channel} · {rep.reportedAt}</span>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                ))}
+              </MapContainer>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 flex flex-wrap gap-4 border-t border-slate-200 dark:border-slate-800">
+              {tab === 'incidents'
+                ? Object.entries(severityColor).map(([k, v]) => <LegendDot key={k} color={v} label={severityLabel[k]} />)
+                : Object.entries(statusColor).map(([k, v]) => <LegendDot key={k} color={v} label={statusLabel[k]} />)
+              }
+            </div>
+          </Card>
+
+          {/* Right panel */}
+          <div className="flex flex-col gap-6">
+
+            {/* Incident feed */}
+            <Card>
+              <CardContent>
+                <div className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-4">
+                  ⬇ ALERT FEED — AI DETEKSI INSIDEN
+                </div>
+                <div className="flex flex-col gap-3 max-h-[240px] overflow-y-auto pr-2">
+                  {incidents.map(inc => (
+                    <div key={inc.id} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border-l-4 border-slate-200 dark:border-slate-700" style={{ borderLeftColor: severityColor[inc.severity] }}>
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{inc.type}</span>
+                        <span className="font-mono text-[9px] px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${severityColor[inc.severity]}22`, color: severityColor[inc.severity] }}>
+                          {severityLabel[inc.severity]}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300 mt-1">{inc.location}</div>
+                      <div className="text-[11px] text-slate-500 mt-1">{inc.description}</div>
+                      <div className="flex justify-between mt-2">
+                        <span className="font-mono text-[9px] text-slate-500 font-medium">
+                          {inc.source} · {inc.detectedAt} WIB
+                        </span>
+                        {inc.alertSent && (
+                          <span className="font-mono text-[9px] text-success-600 dark:text-success-500 font-bold">
+                            🔔 {inc.recipients} warga
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Citizen report form */}
+            <Card>
+              <CardContent>
+                <div className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-4">
+                  ⬆ LAPORAN WARGA — SIMULASI JAKI
+                </div>
+
+                {submitted ? (
+                  <div className="bg-success-50 dark:bg-success-500/10 border border-success-200 dark:border-success-500/30 p-5 rounded-xl text-center">
+                    <div className="text-3xl mb-2">✅</div>
+                    <div className="text-sm text-success-700 dark:text-success-400 font-bold">Laporan Diterima!</div>
+                    <div className="text-[11px] text-success-600 dark:text-success-500/80 mt-1">Validasi CCTV sedang berjalan...</div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <select
+                      value={form.jenis}
+                      onChange={e => setForm(f => ({ ...f, jenis: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs outline-none focus:border-primary-500 transition-colors"
+                    >
+                      <option value="">Jenis pelanggaran/insiden *</option>
+                      <option>Parkir Liar</option>
+                      <option>Kendaraan di Jalur Busway</option>
+                      <option>Kendaraan di Jalur Sepeda</option>
+                      <option>Kecelakaan</option>
+                      <option>Kemacetan Parah</option>
+                      <option>Lainnya</option>
+                    </select>
+                    <input
+                      placeholder="Lokasi kejadian *"
+                      value={form.lokasi}
+                      onChange={e => setForm(f => ({ ...f, lokasi: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs outline-none focus:border-primary-500 transition-colors"
+                    />
+                    <textarea
+                      placeholder="Deskripsi (opsional)"
+                      value={form.deskripsi}
+                      onChange={e => setForm(f => ({ ...f, deskripsi: e.target.value }))}
+                      className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs outline-none focus:border-primary-500 transition-colors h-[70px] resize-none"
+                    />
+                    <div className="flex gap-2">
+                      {['JAKI', 'WhatsApp', 'CRM'].map(ch => (
+                        <button key={ch} onClick={() => setForm(f => ({ ...f, channel: ch }))} className={`flex-1 py-1.5 rounded-md border font-mono text-[10px] font-bold transition-colors ${
+                          form.channel === ch 
+                            ? 'border-success-500 bg-success-50 dark:bg-success-500/10 text-success-600 dark:text-success-400' 
+                            : 'border-slate-200 dark:border-slate-700 bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}>
+                          {ch}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={handleSubmit} disabled={!form.jenis || !form.lokasi} className={`mt-2 py-3 rounded-lg font-outfit font-bold text-sm transition-all ${
+                      form.jenis && form.lokasi 
+                        ? 'bg-gradient-to-r from-success-600 to-primary-600 text-white shadow-md hover:shadow-lg' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                    }`}>
+                      Kirim Laporan
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent reports */}
+            <Card>
+              <CardContent>
+                <div className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-4">
+                  📋 LAPORAN TERBARU
+                </div>
+                <div className="flex flex-col gap-3">
+                  {reports.slice(0, 3).map(rep => (
+                    <div key={rep.id} className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border-l-4 border-slate-200 dark:border-slate-700" style={{ borderLeftColor: statusColor[rep.status] }}>
+                      <div className="flex justify-between items-start">
+                        <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100">{rep.type}</span>
+                        <span className="font-mono text-[9px] font-bold" style={{ color: statusColor[rep.status] }}>
+                          {statusLabel[rep.status]}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-1">{rep.location} · {rep.channel} · {rep.reportedAt}</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">{rep.action}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+      </div>
+      <style>{`@keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+    </div>
+  )
+}
+
+function LegendDot({ color, label }: any) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: color }} />
+      <span className="font-mono text-[10px] font-medium text-slate-600 dark:text-slate-400">{label}</span>
+    </div>
+  )
+}
+

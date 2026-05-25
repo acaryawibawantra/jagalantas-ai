@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+:root {
+  /* Biru Abang (#1C5DDC) */
+  --color-primary-50: #eff4ff;
+  --color-primary-100: #dce7ff;
+  --color-primary-500: #1C5DDC;
+  --color-primary-600: #164bb8;
+  --color-primary-700: #113a91;
+
+  /* Hijau Betawi (#19AE5D) */
+  --color-success-50: #ecfdf3;
+  --color-success-100: #d1fae1;
+  --color-success-500: #19AE5D;
+  --color-success-600: #148f4b;
+
+  /* Kuning Gigi Balang (#FEB52B) */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef5d6;
+  --color-warning-500: #FEB52B;
+  --color-warning-600: #e6a122;
+
+  /* Jingga Bis Kota (#FC351C) */
+  --color-danger-50: #fff1f0;
+  --color-danger-100: #fee0dd;
+  --color-danger-500: #FC351C;
+  --color-danger-600: #e32c16;
+
+  /* Surface Colors for Dark/Light Mode */
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #0f172a;
+}
+
+@theme {
+  --font-inter: "Inter", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+  --font-mono: "DM Mono", monospace;
+
+  /* Map root variables to Tailwind theme */
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+
+  --color-success-50: var(--color-success-50);
+  --color-success-100: var(--color-success-100);
+  --color-success-500: var(--color-success-500);
+  --color-success-600: var(--color-success-600);
+
+  --color-warning-50: var(--color-warning-50);
+  --color-warning-100: var(--color-warning-100);
+  --color-warning-500: var(--color-warning-500);
+  --color-warning-600: var(--color-warning-600);
+
+  --color-danger-50: var(--color-danger-50);
+  --color-danger-100: var(--color-danger-100);
+  --color-danger-500: var(--color-danger-500);
+  --color-danger-600: var(--color-danger-600);
+
+  --color-surface-light: var(--color-surface-light);
+  --color-surface-dark: var(--color-surface-dark);
+}
+
+@layer base {
+  body {
+    @apply font-inter;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-outfit;
+  }
+}
+
+/* Leaflet fixes */
+.leaflet-container {
+  @apply !bg-slate-100 dark:!bg-slate-900;
+}
+
+/* Removed map filters per user request */
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}

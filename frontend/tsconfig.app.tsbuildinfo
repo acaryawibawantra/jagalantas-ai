@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/navbar.tsx","./src/components/statcard.tsx","./src/data/jakartadata.ts","./src/pages/connect.tsx","./src/pages/dashboard.tsx","./src/pages/predict.tsx"],"version":"6.0.3"}

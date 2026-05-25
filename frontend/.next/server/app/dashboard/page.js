@@ -1,0 +1,13 @@
+var R=require("../../chunks/ssr/[turbopack]_runtime.js")("server/app/dashboard/page.js")
+R.c("server/chunks/ssr/[root-of-the-server]__13o.wx-._.js")
+R.c("server/chunks/ssr/0z_q_next_dist_esm_build_templates_app-page_0jazk0y.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0.qtqrh._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__0qq_4-4._.js")
+R.c("server/chunks/ssr/Downloads_jagalantas-ai_src_10rabdm._.js")
+R.c("server/chunks/ssr/0z_q_next_dist_client_components_0yl7sly._.js")
+R.c("server/chunks/ssr/0z_q_next_dist_client_components_builtin_forbidden_0j5n0o1.js")
+R.c("server/chunks/ssr/0z_q_next_dist_client_components_builtin_unauthorized_0q1-jlk.js")
+R.c("server/chunks/ssr/0z_q_next_dist_client_components_builtin_global-error_0ah5y2s.js")
+R.c("server/chunks/ssr/Downloads_jagalantas-ai__next-internal_server_app_dashboard_page_actions_08l3s02.js")
+R.m(65615)
+module.exports=R.m(65615).exports
