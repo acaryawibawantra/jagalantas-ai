@@ -27,7 +27,7 @@ export default function Navbar() {
               JAGALANTAS <span className="text-primary-600 dark:text-primary-400">AI</span>
             </div>
             <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-widest mt-0.5 font-medium">
-              CASE 1 · AI COMPETITION
+              SISTEM MITIGASI & PENGAWASAN KOTA CERDAS
             </div>
           </div>
         </div>
@@ -35,9 +35,9 @@ export default function Navbar() {
         {/* Nav tabs */}
         <div className="hidden md:flex gap-2">
           {[
-            { id: '/', label: 'PREDICT', icon: '📡' },
-            { id: '/connect', label: 'CONNECT', icon: '🔔' },
-            { id: '/dashboard', label: 'DASHBOARD', icon: '📊' },
+            { id: '/', label: 'PREDIKSI', icon: '📡' },
+            { id: '/connect', label: 'INTERAKTIF', icon: '🔔' },
+            { id: '/dashboard', label: 'PANTAU EKSEKUTIF', icon: '📊' },
           ].map(tab => {
             const isActive = pathname === tab.id
             return (

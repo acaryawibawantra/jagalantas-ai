@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from 'react-leaflet'
 // @ts-ignore
 import 'leaflet/dist/leaflet.css'
-import { liveIncidents, citizenReports, statsSummary } from '../data/jakartaData'
+import { liveIncidents, citizenReports, statsSummary, cctvCameras } from '../data/jakartaData'
 import StatCard from '../components/StatCard'
 import { Card, CardContent } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
+import { CctvCanvas } from './Predict'
+import { useOpenCCTV } from '../hooks/useOpenCCTV'
+import { LiveCCTVModal } from '../components/LiveCCTVModal'
+import type { OpenCCTVCamera } from '../hooks/useOpenCCTV'
 
 const severityColor: Record<string, string> = { critical: 'var(--color-danger-500)', high: 'var(--color-warning-500)', medium: 'var(--color-warning-500)', low: 'var(--color-success-500)' }
 const severityLabel: Record<string, string> = { critical: 'KRITIS', high: 'TINGGI', medium: 'SEDANG', low: 'RENDAH' }
@@ -19,6 +23,11 @@ export default function ConnectPage() {
   const [form, setForm] = useState({ jenis: '', lokasi: '', deskripsi: '', channel: 'JAKI' })
   const [submitted, setSubmitted] = useState(false)
   const [newAlert, setNewAlert] = useState<any>(null)
+  const [activeCctvStream, setActiveCctvStream] = useState<any>(null)
+  const [activeLiveCam, setActiveLiveCam] = useState<OpenCCTVCamera | null>(null)
+
+  // OpenCCTV live data
+  const { activeCameras } = useOpenCCTV()
 
   // Simulate incoming alert every 15s
   useEffect(() => {
@@ -56,15 +65,15 @@ export default function ConnectPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] w-full pb-10 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300">
 
-      {/* BMKG-style top alert banner */}
+      {/* Real-time Alert Banner */}
       {newAlert && (
-        <div className="bg-gradient-to-r from-success-600 to-primary-600 px-6 py-2.5 flex items-center gap-3 animate-[slideDown_0.3s_ease]">
-          <span className="text-lg">🔔</span>
-          <span className="font-mono text-xs text-white font-semibold">
-            ALERT OTOMATIS AI: {newAlert}
+        <div className="bg-gradient-to-r from-success-600 to-primary-600 px-6 py-2.5 flex items-center gap-3 animate-[slideDown_0.3s_ease] shadow-md">
+          <span className="text-lg animate-bounce">🔔</span>
+          <span className="font-sans text-xs text-white font-bold tracking-wide">
+            NOTIFIKASI SISTEM: {newAlert}
           </span>
-          <span className="ml-auto font-mono text-[10px] text-white/70">
-            Dikirim ke warga sekitar via JAKI
+          <span className="ml-auto font-sans text-[10px] text-white/80 font-medium">
+            Didiseminasikan ke masyarakat sekitar via JAKI & WhatsApp
           </span>
         </div>
       )}
@@ -73,21 +82,21 @@ export default function ConnectPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-success-500 rounded-full" />
+            <div className="w-1.5 h-8 bg-success-500 rounded-full animate-pulse" />
             <div>
               <h1 className="font-outfit font-bold text-2xl text-slate-900 dark:text-white tracking-tight">
-                JAGALANTAS <span className="text-success-600 dark:text-success-500">CONNECT</span>
+                JAGALANTAS <span className="text-success-600 dark:text-success-500">INTERAKTIF</span>
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">
-                Bidirectional Citizen-AI Alert System · IndoBERT + BMKG-style Alerts
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-sans font-medium mt-1">
+                Sistem Integrasi Laporan Warga & Diseminasi Informasi Lalu Lintas Kota Jakarta
               </p>
             </div>
           </div>
 
           {/* Bidir badges */}
           <div className="flex gap-2">
-            <Badge variant="success" className="px-3 py-1.5">⬆ Warga → Sistem</Badge>
-            <Badge variant="primary" className="px-3 py-1.5">⬇ AI → Warga</Badge>
+            <Badge variant="success" className="px-3 py-1.5 border border-success-500/20">⬆ Partisipasi Masyarakat</Badge>
+            <Badge variant="primary" className="px-3 py-1.5 border border-primary-500/20">⬇ Diseminasi Informasi</Badge>
           </div>
         </div>
 
@@ -143,12 +152,30 @@ export default function ConnectPage() {
                       <span>{inc.type} · {inc.detectedAt}</span>
                     </Tooltip>
                     <Popup>
-                      <div className="min-w-[200px]">
-                        <b style={{ color: severityColor[inc.severity] }} className="text-sm">{inc.type}</b><br />
-                        <span className="text-xs font-semibold">{inc.location}</span><br />
+                      <div className="min-w-[195px] p-0.5">
+                        <b style={{ color: severityColor[inc.severity] }} className="text-sm font-outfit font-bold">{inc.type}</b><br />
+                        <span className="text-xs font-semibold block mt-0.5 leading-tight">{inc.location}</span>
                         <span className="text-[11px] text-slate-500 block mt-1">{inc.description}</span>
-                        <span className="text-[11px] text-slate-500 block mt-1">Sumber: {inc.source}</span>
-                        {inc.alertSent && <span className="text-[11px] text-success-600 font-semibold block mt-1">✓ Alert terkirim ke {inc.recipients} warga</span>}
+                        <span className="text-[11px] text-slate-500 block mt-0.5">Sumber: {inc.source === 'AI CCTV' ? 'Deteksi CCTV Cerdas' : inc.source}</span>
+                        {inc.alertSent && <span className="text-[10px] text-success-600 dark:text-success-500 font-semibold block mt-1">✓ Notifikasi terkirim ke {inc.recipients} warga</span>}
+                        
+                        <button
+                          onClick={() => {
+                            // Try to find matching live cam from OpenCCTV first
+                            const liveCam = activeCameras.find(c =>
+                              c.name.toLowerCase().includes(inc.location.split(' - ')[0].toLowerCase().replace('jl. ', ''))
+                            )
+                            if (liveCam) {
+                              setActiveLiveCam(liveCam)
+                            } else {
+                              const matchingCam = cctvCameras.find(c => inc.location.toLowerCase().includes(c.name.split(' - ')[0].toLowerCase().replace('jl. ', ''))) || cctvCameras[0]
+                              setActiveCctvStream(matchingCam)
+                            }
+                          }}
+                          className="mt-2.5 w-full py-1.5 px-2 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-outfit font-bold text-[10px] rounded-lg transition-all shadow-sm hover:shadow text-center flex items-center justify-center gap-1.5"
+                        >
+                          📹 Lihat Live AI Stream
+                        </button>
                       </div>
                     </Popup>
                   </CircleMarker>
@@ -197,7 +224,7 @@ export default function ConnectPage() {
             <Card>
               <CardContent>
                 <div className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-4">
-                  ⬇ ALERT FEED — AI DETEKSI INSIDEN
+                  ⬇ UMPAN NOTIFIKASI — DETEKSI INSIDEN OTOMATIS
                 </div>
                 <div className="flex flex-col gap-3 max-h-[240px] overflow-y-auto pr-2">
                   {incidents.map(inc => (
@@ -212,11 +239,11 @@ export default function ConnectPage() {
                       <div className="text-[11px] text-slate-500 mt-1">{inc.description}</div>
                       <div className="flex justify-between mt-2">
                         <span className="font-mono text-[9px] text-slate-500 font-medium">
-                          {inc.source} · {inc.detectedAt} WIB
+                          Sensor Cerdas · {inc.detectedAt} WIB
                         </span>
                         {inc.alertSent && (
                           <span className="font-mono text-[9px] text-success-600 dark:text-success-500 font-bold">
-                            🔔 {inc.recipients} warga
+                            🔔 Diseminasi {inc.recipients} warga
                           </span>
                         )}
                       </div>
@@ -230,7 +257,7 @@ export default function ConnectPage() {
             <Card>
               <CardContent>
                 <div className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-4">
-                  ⬆ LAPORAN WARGA — SIMULASI JAKI
+                  ⬆ FORMULIR LAPORAN WARGA (INTEGRASI JAKI)
                 </div>
 
                 {submitted ? (
@@ -311,6 +338,59 @@ export default function ConnectPage() {
                 </div>
               </CardContent>
             </Card>
+          {/* CCTV Live AI Stream Modal */}
+          {activeCctvStream && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-[scaleUp_0.2s_ease-out] flex flex-col">
+                
+                {/* Modal Header */}
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success-500"></span>
+                    </span>
+                    <div>
+                      <span className="font-outfit font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-tight">
+                        AI SIMULASI — {activeCctvStream.name}
+                      </span>
+                      <div className="font-mono text-[9px] text-slate-500 mt-0.5">Demonstrasi deteksi pelanggaran berbasis AI</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveCctvStream(null)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-mono text-xs font-bold"
+                  >
+                    ✕ TUTUP
+                  </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 flex flex-col gap-4">
+                  <CctvCanvas camera={activeCctvStream} />
+                  
+                  {/* Telemetry/Log Section */}
+                  <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+                    <div className="font-mono text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 dark:border-slate-800/60 pb-1 flex justify-between">
+                      <span>📊 SIMULASI DETEKSI AI</span>
+                      <span className="text-primary-500 font-bold">BERJALAN</span>
+                    </div>
+                    
+                    <div className="font-mono text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed flex flex-col gap-1 max-h-[80px] overflow-y-auto pr-1">
+                      <div>[15:59:40] SISTEM: Menghubungkan ke CCTV ID {activeCctvStream.id}...</div>
+                      <div>[15:59:41] INTEGRASI: Mengunduh bobot deteksi visi komputer...</div>
+                      <div className="text-success-600 dark:text-success-400 font-bold">[15:59:42] AKTIF: Pipa analisis objek cerdas berjalan (FPS: 30.0)</div>
+                      <div className="text-warning-600 dark:text-warning-400 font-semibold">[15:59:43] DETEKSI: Melakukan pemindaian insiden lalu lintas & diseminasi info otomatis...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Live OpenCCTV Modal */}
+          <LiveCCTVModal camera={activeLiveCam} onClose={() => setActiveLiveCam(null)} />
+
           </div>
         </div>
 

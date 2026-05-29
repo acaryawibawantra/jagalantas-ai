@@ -1,3 +1,0 @@
-module.exports=[10723,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(78677);a.n(d("[project]/Downloads/jagalantas-ai/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},53382,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(78677);a.n(d("[project]/Downloads/jagalantas-ai/node_modules/next/dist/client/components/builtin/global-error.js"))},19458,a=>{"use strict";a.i(10723);var b=a.i(53382);a.n(b)},30670,a=>{a.n(a.i(19458))}];
-
-//# sourceMappingURL=0z_q_next_dist_client_components_builtin_global-error_0ah5y2s.js.map
