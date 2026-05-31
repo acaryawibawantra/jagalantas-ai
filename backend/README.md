@@ -1,3 +1,13 @@
+---
+title: Jagalantas AI Backend
+emoji: 🚨
+colorFrom: red
+colorTo: yellow
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # JAGALANTAS AI — Backend API
 
 Backend service untuk sistem Jagalantas AI. Saat ini berisi **dummy data** untuk mendukung prototype frontend. Akan diisi dengan implementasi AI model (YOLOv11, LSTM, IndoBERT) pada tahap berikutnya.
