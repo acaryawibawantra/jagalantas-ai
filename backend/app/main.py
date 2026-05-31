@@ -36,12 +36,7 @@ app.include_router(forecast.router,   prefix="/api/v1", tags=["Forecast"])
 
 @app.get("/", tags=["Health"])
 def root():
-    return {
-        "service": "JAGALANTAS AI Backend",
-        "version": "0.1.0",
-        "status": "running",
-        "docs": "/docs",
-    }
+    return {"service": "JAGALANTAS AI Backend", "version": "0.1.0", "status": "running", "docs": "/docs"}
 
 
 @app.get("/health", tags=["Health"])
